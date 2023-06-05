@@ -172,8 +172,10 @@ def load_authors_file(fn)
 				hash[uname] = author
 			end
 		end
-	rescue
-		not_found(fn)
+	rescue Exception => e
+		warning "Failed to read authors file #{fn}: #{e}"
+		warning e.backtrace
+		exit 1
 	end
 	return hash
 end
