@@ -124,6 +124,7 @@ Options:
 	--skip-branches		when exporting multiple files with a branched history, export
 				the main branch only instead of aborting due to the lack of
 				support for branched multi-file history export
+	--skip-revisions	list of comma-separated revisions to skip (e.g. 1.1,1.2)
 
 
 
@@ -807,6 +808,7 @@ opts = GetoptLong.new(
 	['--no-log-filename', GetoptLong::NO_ARGUMENT],
 	# skip branches when exporting a whole tree?
 	['--skip-branches', GetoptLong::NO_ARGUMENT],
+	['--skip-revisions', GetoptLong::REQUIRED_ARGUMENT],
 	# show current version
 	['--version', '-v', GetoptLong::NO_ARGUMENT],
 	# show help/usage
@@ -824,6 +826,7 @@ parse_options = {
 	:ignore => Array.new,
 	:commit_fuzz => 300,
 	:tag_fuzz => -1,
+	:skip_revisions => Array.new,
 }
 
 # Read config options
@@ -898,6 +901,8 @@ opts.each do |opt, arg|
 		parse_options[:log_filename] = false
 	when '--skip-branches'
 		parse_options[:skip_branches] = true
+	when '--skip-revisions'
+		parse_options[:skip_revisions] = arg.split(',')
 	when ''
 		file_list << arg
 	when '--version'
@@ -1043,7 +1048,9 @@ else
 	rcs.each do |r|
 		r.revision.each do |k, rev|
 			begin
-				commits << RCS::Commit.new(r, rev)
+				unless parse_options[:skip_revisions].include? rev.rev
+					commits << RCS::Commit.new(r, rev)
+				end
 			rescue NoBranchSupport
 				if parse_options[:skip_branches]
 					warning "Skipping revision #{rev.rev} for #{r.fname} (branch)"
