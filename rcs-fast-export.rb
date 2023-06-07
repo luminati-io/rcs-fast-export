@@ -125,6 +125,7 @@ Options:
 				the main branch only instead of aborting due to the lack of
 				support for branched multi-file history export
 	--skip-revisions	list of comma-separated revisions to skip (e.g. 1.1,1.2)
+	--strip-attic		strip the attic directory that CVS uses for deleted files from all paths
 
 
 
@@ -196,6 +197,10 @@ end
 def alert(msg, action)
 	STDERR.puts "ERROR:\t#{msg}"
 	STDERR.puts "\t#{action}"
+end
+
+def strip_attic(path)
+	return path.sub(/\bAttic\//, '')
 end
 
 class Time
@@ -393,7 +398,10 @@ module RCS
 	end
 
 	def RCS.parse(fname, rcsfile, opts={})
-		rcs = RCS::File.new(fname, ::File.executable?(rcsfile))
+		rcs = RCS::File.new(
+			opts[:strip_attic] ? strip_attic(fname) : fname,
+			::File.executable?(rcsfile)
+		)
 
 		::File.open(rcsfile, 'rb') do |file|
 			status = [:basic]
@@ -811,6 +819,7 @@ opts = GetoptLong.new(
 	# skip branches when exporting a whole tree?
 	['--skip-branches', GetoptLong::NO_ARGUMENT],
 	['--skip-revisions', GetoptLong::REQUIRED_ARGUMENT],
+	['--strip-attic', GetoptLong::NO_ARGUMENT],
 	# show current version
 	['--version', '-v', GetoptLong::NO_ARGUMENT],
 	# show help/usage
@@ -905,6 +914,8 @@ opts.each do |opt, arg|
 		parse_options[:skip_branches] = true
 	when '--skip-revisions'
 		parse_options[:skip_revisions] = arg.split(',')
+	when '--strip-attic'
+		parse_options[:strip_attic] = true
 	when ''
 		file_list << arg
 	when '--version'
